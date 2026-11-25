@@ -3,7 +3,7 @@
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-const APP_VERSION='1.0.1';
+const APP_VERSION='1.0.2';
 
 /* ================= local storage (IndexedDB) ================= */
 const IDB={db:null,
