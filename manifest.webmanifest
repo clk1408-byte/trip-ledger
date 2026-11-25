@@ -1,6 +1,6 @@
 {
-  "name": "Trip Ledger",
-  "short_name": "Trips",
+  "name": "Jetsetr",
+  "short_name": "Jetsetr",
   "description": "Trip itineraries and shared costs, offline first.",
   "start_url": "./#trips",
   "scope": "./",

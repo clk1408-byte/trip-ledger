@@ -1,4 +1,4 @@
-# Trip Ledger
+# Jetsetr
 
 Trip itineraries and shared trip costs for two, installable on a phone and usable offline.
 

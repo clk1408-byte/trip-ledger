@@ -1,9 +1,9 @@
-/* Trip Ledger — offline-first trip planner + cost splitter, synced through a private GitHub repository. */
+/* Jetsetr — offline-first trip planner + cost splitter, synced through a private GitHub repository. */
 {
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-const APP_VERSION='1.0.3';
+const APP_VERSION='1.0.4';
 
 /* ================= local storage (IndexedDB) ================= */
 const IDB={db:null,
@@ -357,7 +357,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 const prfSupported=()=>!!(window.PublicKeyCredential&&navigator.credentials&&navigator.credentials.create);
 async function prfGet(credId){const a=await navigator.credentials.get({publicKey:{challenge:rand(32),allowCredentials:credId?[{type:'public-key',id:b64dec(credId)}]:[],userVerification:'required',timeout:60000,extensions:{prf:{eval:{first:PRF_SALT}}}}});
   const r=a.getClientExtensionResults();const out=r&&r.prf&&r.prf.results&&r.prf.results.first;if(!out)throw new Error('This phone can’t use fingerprint unlock for the vault. Use the passphrase.');return{secret:new Uint8Array(out),id:b64enc(new Uint8Array(a.rawId))}}
-async function fingerprintEnroll(){const nm=pname(null,me());const cred=await navigator.credentials.create({publicKey:{challenge:rand(32),rp:{name:'Trip Ledger',id:location.hostname},user:{id:rand(16),name:nm+' · Trip Ledger vault',displayName:nm},
+async function fingerprintEnroll(){const nm=pname(null,me());const cred=await navigator.credentials.create({publicKey:{challenge:rand(32),rp:{name:'Jetsetr',id:location.hostname},user:{id:rand(16),name:nm+' · Jetsetr vault',displayName:nm},
     pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{residentKey:'preferred',userVerification:'required'},timeout:60000,extensions:{prf:{eval:{first:PRF_SALT}}}}});
   const ext=cred.getClientExtensionResults();if(!ext||!ext.prf||ext.prf.enabled===false)throw new Error('This phone can’t use fingerprint unlock for the vault yet. The passphrase still works.');
   const id=b64enc(new Uint8Array(cred.rawId));let secret=ext.prf.results&&ext.prf.results.first?new Uint8Array(ext.prf.results.first):null;if(!secret)secret=(await prfGet(id)).secret;
@@ -407,7 +407,7 @@ function settingsSheet(){const c=S.cfg,n=Object.keys(S.pending).length+Object.ke
   $('#sNow').onclick=()=>{closeSheet();sync(true)};$('#sKey').onclick=()=>{closeSheet();renderSetup(true)};
   $('#sOut').onclick=()=>confirmBox('Remove all trip data from this phone?','Disconnect',async()=>{await IDB.clear();LS.del('tl_cfg');LS.del('tl_lastsync');LS.del('tl_cred');location.hash='';location.reload()})}
 function renderSetup(replace){setFab(null);$('#top').innerHTML='';$('#head').innerHTML='';const c=S.cfg||{owner:'clk1408-byte',repo:'trip-ledger-data',me:'a'};
-  $('#app').innerHTML=`<div class="setup"><h1>${replace?'Replace access key':'Welcome to Trip Ledger'}</h1><p class="lede">Connect this phone to your trips on GitHub. You only do this once.</p>
+  $('#app').innerHTML=`<div class="setup"><h1>${replace?'Replace access key':'Welcome to Jetsetr'}</h1><p class="lede">Connect this phone to your trips on GitHub. You only do this once.</p>
    <label class="f">Who’s using this phone?</label>${seg('me',[['a','Christian'],['b','Tami']],c.me||'a')}
    <label class="f">GitHub account<input id="sO" value="${esc(c.owner)}" autocapitalize="off" autocomplete="off"></label>
    <label class="f">Data repository<input id="sR" value="${esc(c.repo)}" autocapitalize="off" autocomplete="off"></label>
