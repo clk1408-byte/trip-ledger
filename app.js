@@ -3,7 +3,7 @@
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-const APP_VERSION='1.0.0';
+const APP_VERSION='1.0.1';
 
 /* ================= local storage (IndexedDB) ================= */
 const IDB={db:null,
@@ -238,6 +238,9 @@ const seg=(name,opts,val)=>`<div class="seg" data-seg="${name}">${opts.map(([v,l
 function wireSeg(root,cb){root.querySelectorAll('[data-seg]').forEach(g=>g.querySelectorAll('button').forEach(b=>b.onclick=()=>{g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));cb&&cb(g.dataset.seg,b.dataset.v)}))}
 const segVal=(root,n)=>{const b=root.querySelector(`[data-seg="${n}"] [aria-pressed=true]`);return b?b.dataset.v:''};
 const curSel=(id,v)=>`<select id="${id}">${CURS.map(c=>`<option ${c===v?'selected':''}>${c}</option>`).join('')}</select>`;
+function addPeek(root){(root||document).querySelectorAll('input[type=password]:not([data-peek])').forEach(inp=>{inp.dataset.peek='1';const w=document.createElement('div');w.style.cssText='display:flex;gap:8px;align-items:center;margin-top:4px';
+  inp.parentNode.insertBefore(w,inp);w.appendChild(inp);inp.style.marginTop='0';inp.style.flex='1';const b=document.createElement('button');b.type='button';b.className='btn ghost';b.style.cssText='min-height:44px;padding:8px 14px;flex:none';b.textContent='Show';
+  b.onclick=()=>{const show=inp.type==='password';inp.type=show?'text':'password';b.textContent=show?'Hide':'Show';inp.focus()};w.appendChild(b)})}
 let fabFn=null;function setFab(fn){fabFn=fn;$('#fab').hidden=!fn}
 $('#fab').onclick=()=>fabFn&&fabFn();
 
@@ -361,7 +364,7 @@ async function fingerprintEnroll(){const nm=pname(null,me());const cred=await na
   const wk=await prfKey(secret);const v=clean(S.vault);v.wraps=v.wraps.filter(w=>!(w.t==='pk'&&w.cred===id));v.wraps.push(Object.assign({t:'pk',cred:id,who:me(),name:nm+'’s phone',at:Date.now()},await seal(wk,V.raw)));v.updatedAt=Date.now();change('vault.json',v);LS.set('tl_cred',id)}
 async function fingerprintUnlock(){const id=LS.get('tl_cred');const w=S.vault.wraps.find(x=>x.t==='pk'&&x.cred===id);if(!w)throw new Error('Fingerprint isn’t set up for the vault on this phone. Use the passphrase.');const{secret}=await prfGet(id);const raw=await open_(await prfKey(secret),w);await finishUnlock(raw)}
 async function vaultImg(id){if(S.urls['v:'+id])return S.urls['v:'+id];const rec=await IDB.get('blobs',id);if(!rec)return null;const box=JSON.parse(td.decode(new Uint8Array(rec.buf)));const bytes=await open_(V.key,box);const u=URL.createObjectURL(new Blob([bytes],{type:box.type||'image/jpeg'}));S.urls['v:'+id]=u;return u}
-function renderVault(){$('#top').innerHTML=`<button class="ib" id="back" aria-label="All trips">${BACK}</button>${syncBtn()}<div class="sp"></div>${V.key?'<button class="pill" id="vLock">Lock</button>':''}`;drawSync();$('#back').onclick=()=>location.hash='trips';
+function renderVault(){setTimeout(()=>addPeek($('#app')),0);$('#top').innerHTML=`<button class="ib" id="back" aria-label="All trips">${BACK}</button>${syncBtn()}<div class="sp"></div>${V.key?'<button class="pill" id="vLock">Lock</button>':''}`;drawSync();$('#back').onclick=()=>location.hash='trips';
   const lk=$('#vLock');if(lk)lk.onclick=vaultLock;setFab(null);
   $('#head').innerHTML=`<h1>Vault</h1><p class="lede">Passports and other sensitive details, scrambled on this phone before they sync. GitHub and Claude only ever see gibberish.</p>`;
   const A=$('#app');
@@ -410,7 +413,7 @@ function renderSetup(replace){setFab(null);$('#top').innerHTML='';$('#head').inn
    <label class="f">Data repository<input id="sR" value="${esc(c.repo)}" autocapitalize="off" autocomplete="off"></label>
    <label class="f">Access key<input id="sT" type="password" placeholder="github_pat_…" autocomplete="off"></label>
    <div class="acts"><button class="btn" id="sGo">Connect</button>${replace?'<button class="btn ghost" id="sBack">Cancel</button>':''}</div><p class="note" id="sMsg"></p></div>`;
-  const root=$('#app');wireSeg(root);const b=$('#sBack');if(b)b.onclick=()=>route();
+  const root=$('#app');wireSeg(root);addPeek(root);const tk=$('#sT');tk.setAttribute('autocorrect','off');tk.setAttribute('spellcheck','false');tk.addEventListener('input',()=>{const v=tk.value.trim();$('#sMsg').textContent=v?`${v.length} characters${/^github_pat_/.test(v)?'':' · keys normally start with github_pat_'}`:''});const b=$('#sBack');if(b)b.onclick=()=>route();
   $('#sGo').onclick=async()=>{const cfg={owner:$('#sO').value.trim(),repo:$('#sR').value.trim(),token:$('#sT').value.trim()||(replace&&S.cfg?S.cfg.token:''),me:segVal(root,'me')||'a'};
     const msg=$('#sMsg');if(!cfg.token)return msg.textContent='Paste the access key first.';msg.textContent='Checking…';
     try{const prev=S.cfg;S.cfg=cfg;const r=await gh(`${R()}`);cfg.branch=r.json.default_branch||'main';if(r.json.permissions&&r.json.permissions.push===false){S.cfg=prev;return msg.textContent='That key can read the repository but not save to it. Give it “Contents: Read and write”.'}
@@ -420,7 +423,7 @@ function renderSetup(replace){setFab(null);$('#top').innerHTML='';$('#head').inn
 /* ================= boot ================= */
 async function boot(){try{const st=await IDB.get('kv','state');if(st)Object.assign(S,{files:st.files||{},pending:st.pending||{},upQueue:st.upQueue||{},remoteBlobs:st.remoteBlobs||{},headSha:st.headSha||null})}catch(e){toast('This phone’s storage isn’t available: '+e.message,6000)}
   rebuild();route();if(S.cfg)sync();
-  if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker'in navigator){const had=!!navigator.serviceWorker.controller;let done=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!done){done=true;location.reload()}});navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{})}
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}
 boot();
 }
